@@ -9,12 +9,14 @@ import User from '../user/entities/user.entity';
 import Room from './entities/room.entity';
 import Participant from './entities/participant.entity';
 import Message from './entities/message.entity';
+import { PrivateFilesModule } from '../privateFiles/privateFiles.module';
 
 @Module({
   imports: [
     AuthModule,
     UserModule,
     TypeOrmModule.forFeature([User, Room, Participant, Message]),
+    PrivateFilesModule,
   ],
   providers: [ChatGateway, ChatService],
   controllers: [ChatController],

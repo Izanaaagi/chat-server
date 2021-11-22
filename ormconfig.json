@@ -10,5 +10,11 @@
   "entities": [
     "dist/**/*.entity{.ts,.js}"
   ],
+  "seeds": [
+    "dist/**/*.seeder{.ts,.js}"
+  ],
+  "factories": [
+    "dist/**/*.factory{.ts,.js}"
+  ],
   "autoLoadEntities": true
 }

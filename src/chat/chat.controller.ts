@@ -1,12 +1,15 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Get,
-  Logger,
   Param,
   Post,
+  Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import User from '../user/entities/user.entity';
@@ -18,9 +21,19 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { ChatService } from './chat.service';
 import JwtAuthGuard from '../auth/guards/jwtAuth.guard';
 import RequestWithUser from '../auth/requestWithUser.interface';
+import { PaginationDto } from './dto/pagination.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
+import { multerOptions } from './multerOptions';
+import { ApiCookieAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { MessagesResponseDto } from './dto/messages-response.dto';
+import { ChatsResponseDto } from './dto/chats-response.dto';
 
 @Controller('api/chat')
 @UseGuards(JwtAuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
+@ApiTags('chat')
+@ApiCookieAuth()
 export class ChatController {
   constructor(
     @InjectRepository(User)
@@ -35,78 +48,51 @@ export class ChatController {
   ) {}
 
   @Post()
-  async sendMessage(@Body() sendMessageDto: SendMessageDto) {
-    return this.chatService.sendMessage(sendMessageDto);
+  @UseInterceptors(FileInterceptor('file', multerOptions))
+  @ApiOkResponse({ type: Message, description: 'Send message' })
+  async sendMessage(
+    @Body() sendMessageDto: SendMessageDto,
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<Message> {
+    return await this.chatService.sendMessage(sendMessageDto, file);
   }
 
   @Get(':receiverId')
+  @ApiOkResponse({
+    type: MessagesResponseDto,
+    description: 'Get paginated messages',
+  })
   async getMessages(
+    @Query() query: PaginationDto,
     @Param('receiverId') receiverId: number,
     @Req() req: RequestWithUser,
-  ) {
+  ): Promise<MessagesResponseDto> {
     const room: Room = await this.chatService.getChatRoom(
       req.user.id,
       receiverId,
     );
-    const messages: Message[] = await this.chatService.getMessages(room.id);
+    const messages = await this.chatService.getMessages(
+      query,
+      room.id,
+      req.user,
+    );
 
     return {
       roomId: room.id,
-      messages,
+      messages: messages.messages,
+      count: messages.count,
     };
   }
 
   @Get()
-  async getChats(@Req() req: RequestWithUser): Promise<Room[]> {
-    const authUser: User = req.user;
-    const roomsWithUser: Room[] = await this.roomsRepository
-      .createQueryBuilder('room')
-      .leftJoinAndSelect('room.participants', 'participants')
-      .leftJoinAndSelect('participants.user', 'user')
-      .where('user.id = :id', { id: authUser.id })
-      .select('room.id')
-      .getMany();
-
-    const finalArray: Room[] = await this.roomsRepository
-      .createQueryBuilder('room')
-      .select([
-        'room.id',
-        'user',
-        'participants',
-        'messages.id',
-        'messages.message',
-        'messages.created_at',
-        'messages.updated_at',
-        'messages.userId',
-      ])
-      .whereInIds(roomsWithUser)
-      .leftJoin('room.participants', 'participants')
-      .leftJoin('participants.user', 'user')
-      .leftJoin(
-        (qb) =>
-          qb
-            .from(Message, 'message')
-            .select('MAX(created_at)', 'effective_date')
-            .addSelect('message.roomId', 'room_id')
-            .groupBy('room_id'),
-        'last_message',
-        'last_message.room_id = room.id',
-      )
-      .leftJoin(
-        'room.messages',
-        'messages',
-        'messages.roomId = room.id AND messages.created_at = last_message.effective_date',
-      )
-      .groupBy('user.id, participants.id, messages.id, room.id')
-      .having('COUNT(messages) > 0')
-      .getMany();
-
-    finalArray.forEach((room) =>
-      room.participants[0].user.id === authUser.id
-        ? room.participants.shift()
-        : room.participants.pop(),
-    );
-
-    return finalArray;
+  @ApiOkResponse({
+    type: [ChatsResponseDto],
+    description: 'Get paginated chats',
+  })
+  async getChats(
+    @Req() req: RequestWithUser,
+    @Query() query: PaginationDto,
+  ): Promise<ChatsResponseDto[]> {
+    return this.chatService.getChats(req.user, query);
   }
 }
