@@ -269,6 +269,7 @@ export class ChatService {
       .andWhere('LOWER(user.name) like :name', {
         name: `%${keyWord}%`,
       })
+      .andWhere('user.id != :id', { id: authUser.id })
       .leftJoinAndSelect('user.avatar', 'avatar')
       .leftJoin(
         (qb) =>
