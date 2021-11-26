@@ -45,7 +45,7 @@
     "@types/socket.io": "^3.0.1",
     "@types/uuid": "^8.3.3",
     "aws-sdk": "^2.1031.0",
-    "bcrypt": "^5.0.1",
+    "bcryptjs": "^2.4.3",
     "class-transformer": "^0.4.0",
     "class-validator": "^0.13.1",
     "cookie": "^0.4.1",
