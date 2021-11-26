@@ -39,7 +39,7 @@ export class UserService {
       },
     });
 
-    return { users: plainToClass(User, result), count: total };
+    return { users: result, count: total };
   }
 
   async findOne(id: number) {

@@ -311,12 +311,9 @@ export class ChatService {
       const response: ChatsResponseDto[] = finalArray.map((room) => {
         return {
           id: room.id,
-          user: plainToClass(
-            User,
-            room.participants.find(
-              (participant) => participant.user.id != authUser.id,
-            ).user,
-          ),
+          user: room.participants.find(
+            (participant) => participant.user.id != authUser.id,
+          ).user,
           lastMessage: plainToClass(
             Message,
             room.messages[0].privateFile
