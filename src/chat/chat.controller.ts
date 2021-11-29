@@ -3,6 +3,7 @@ import {
   ClassSerializerInterceptor,
   Controller,
   Get,
+  Logger,
   Param,
   Post,
   Query,
@@ -76,7 +77,6 @@ export class ChatController {
       room.id,
       req.user,
     );
-
     return {
       roomId: room.id,
       messages: messages.messages,

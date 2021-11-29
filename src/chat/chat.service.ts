@@ -204,13 +204,13 @@ export class ChatService {
 
     if (numPages >= page) {
       messages = await qb.offset(skip).limit(take).getMany();
-    } else
+      messages = await this.getAllPrivateFiles(messages);
+    } else if (count !== 0) {
       throw new HttpException(
         { status: HttpStatus.NO_CONTENT, error: 'Page not fount' },
         HttpStatus.NO_CONTENT,
       );
-
-    messages = await this.getAllPrivateFiles(messages);
+    }
 
     return {
       messages,
@@ -328,7 +328,7 @@ export class ChatService {
       return response;
     } else {
       throw new HttpException(
-        { status: HttpStatus.NO_CONTENT, error: 'Page not fount' },
+        { status: HttpStatus.NO_CONTENT, error: 'Page not found' },
         HttpStatus.NO_CONTENT,
       );
     }
